@@ -23,12 +23,13 @@ import { snapshotTools, screenshotTools } from './tools.js';
 
 import type { Config } from '../config.js';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
+import { BrowserContext } from 'playwright';
 
-export async function createConnection(config: Config): Promise<Connection> {
+export async function createConnection(config: Config, playwrightContext?: BrowserContext): Promise<Connection> {
   const allTools = config.vision ? screenshotTools : snapshotTools;
   const tools = allTools.filter(tool => !config.capabilities || tool.capability === 'core' || config.capabilities.includes(tool.capability));
 
-  const context = new Context(tools, config);
+  const context = new Context(tools, config, playwrightContext);
   const server = new Server({ name: 'Playwright', version: packageJSON.version }, {
     capabilities: {
       tools: {},

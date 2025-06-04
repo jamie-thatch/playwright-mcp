@@ -26,14 +26,15 @@ import { createConnection } from './connection.js';
 
 import type { Config } from '../config.js';
 import type { Connection } from './connection.js';
+import { BrowserContext } from 'playwright';
 
-export async function startStdioTransport(config: Config, connectionList: Connection[]) {
-  const connection = await createConnection(config);
+export async function startStdioTransport(config: Config, connectionList: Connection[], playwrightContext?: BrowserContext) {
+  const connection = await createConnection(config, playwrightContext);
   await connection.connect(new StdioServerTransport());
   connectionList.push(connection);
 }
 
-async function handleSSE(config: Config, req: http.IncomingMessage, res: http.ServerResponse, url: URL, sessions: Map<string, SSEServerTransport>, connectionList: Connection[]) {
+async function handleSSE(config: Config, req: http.IncomingMessage, res: http.ServerResponse, url: URL, sessions: Map<string, SSEServerTransport>, connectionList: Connection[], playwrightContext?: BrowserContext) {
   if (req.method === 'POST') {
     const sessionId = url.searchParams.get('sessionId');
     if (!sessionId) {
@@ -51,7 +52,7 @@ async function handleSSE(config: Config, req: http.IncomingMessage, res: http.Se
   } else if (req.method === 'GET') {
     const transport = new SSEServerTransport('/sse', res);
     sessions.set(transport.sessionId, transport);
-    const connection = await createConnection(config);
+    const connection = await createConnection(config, playwrightContext);
     await connection.connect(transport);
     connectionList.push(connection);
     res.on('close', () => {
@@ -68,7 +69,7 @@ async function handleSSE(config: Config, req: http.IncomingMessage, res: http.Se
   res.end('Method not allowed');
 }
 
-async function handleStreamable(config: Config, req: http.IncomingMessage, res: http.ServerResponse, sessions: Map<string, StreamableHTTPServerTransport>, connectionList: Connection[]) {
+async function handleStreamable(config: Config, req: http.IncomingMessage, res: http.ServerResponse, sessions: Map<string, StreamableHTTPServerTransport>, connectionList: Connection[], playwrightContext?: BrowserContext) {
   const sessionId = req.headers['mcp-session-id'] as string | undefined;
   if (sessionId) {
     const transport = sessions.get(sessionId);
@@ -91,7 +92,7 @@ async function handleStreamable(config: Config, req: http.IncomingMessage, res: 
       if (transport.sessionId)
         sessions.delete(transport.sessionId);
     };
-    const connection = await createConnection(config);
+    const connection = await createConnection(config, playwrightContext);
     connectionList.push(connection);
     await Promise.all([
       connection.connect(transport),
@@ -104,42 +105,42 @@ async function handleStreamable(config: Config, req: http.IncomingMessage, res: 
   res.end('Invalid request');
 }
 
-export function startHttpTransport(config: Config, port: number, hostname: string | undefined, connectionList: Connection[]) {
+export function startHttpTransport(config: Config, port: number, hostname: string | undefined, connectionList: Connection[], playwrightContext?: BrowserContext) {
   const sseSessions = new Map<string, SSEServerTransport>();
   const streamableSessions = new Map<string, StreamableHTTPServerTransport>();
   const httpServer = http.createServer(async (req, res) => {
     const url = new URL(`http://localhost${req.url}`);
     if (url.pathname.startsWith('/mcp'))
-      await handleStreamable(config, req, res, streamableSessions, connectionList);
+      await handleStreamable(config, req, res, streamableSessions, connectionList, playwrightContext);
     else
-      await handleSSE(config, req, res, url, sseSessions, connectionList);
+      await handleSSE(config, req, res, url, sseSessions, connectionList, playwrightContext);
   });
   httpServer.listen(port, hostname, () => {
     const address = httpServer.address();
     assert(address, 'Could not bind server socket');
-    let url: string;
-    if (typeof address === 'string') {
-      url = address;
-    } else {
-      const resolvedPort = address.port;
-      let resolvedHost = address.family === 'IPv4' ? address.address : `[${address.address}]`;
-      if (resolvedHost === '0.0.0.0' || resolvedHost === '[::]')
-        resolvedHost = 'localhost';
-      url = `http://${resolvedHost}:${resolvedPort}`;
-    }
-    const message = [
-      `Listening on ${url}`,
-      'Put this in your client config:',
-      JSON.stringify({
-        'mcpServers': {
-          'playwright': {
-            'url': `${url}/sse`
-          }
-        }
-      }, undefined, 2),
-      'If your client supports streamable HTTP, you can use the /mcp endpoint instead.',
-    ].join('\n');
-    // eslint-disable-next-line no-console
-    console.log(message);
+    // let url: string;
+    // if (typeof address === 'string') {
+    //   url = address;
+    // } else {
+    //   const resolvedPort = address.port;
+    //   let resolvedHost = address.family === 'IPv4' ? address.address : `[${address.address}]`;
+    //   if (resolvedHost === '0.0.0.0' || resolvedHost === '[::]')
+    //     resolvedHost = 'localhost';
+    //   url = `http://${resolvedHost}:${resolvedPort}`;
+    // }
+    // const message = [
+    //   `Listening on ${url}`,
+    //   'Put this in your client config:',
+    //   JSON.stringify({
+    //     'mcpServers': {
+    //       'playwright': {
+    //         'url': `${url}/sse`
+    //       }
+    //     }
+    //   }, undefined, 2),
+    //   'If your client supports streamable HTTP, you can use the /mcp endpoint instead.',
+    // ].join('\n');
+    // // eslint-disable-next-line no-console
+    // // console.log(message);
   });
 }

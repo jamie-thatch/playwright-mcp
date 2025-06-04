@@ -17,6 +17,7 @@
   "license": "Apache-2.0",
   "scripts": {
     "build": "tsc",
+    "prepare": "tsc",
     "lint": "npm run update-readme && eslint . && tsc --noEmit",
     "update-readme": "node utils/update-readme.js",
     "watch": "tsc --watch",
@@ -32,13 +33,26 @@
     ".": {
       "types": "./index.d.ts",
       "default": "./index.js"
+    },
+    "./tools": {
+      "types": "./lib/tools.d.ts",
+      "default": "./lib/tools.js"
+    },
+    "./transport": {
+      "types": "./lib/transport.d.ts",
+      "default": "./lib/transport.js"
+    },
+    "./connection": {
+      "types": "./lib/connection.d.ts",
+      "default": "./lib/connection.js"
     }
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.11.0",
     "commander": "^13.1.0",
     "playwright": "1.53.0-alpha-1746832516000",
-    "zod-to-json-schema": "^3.24.4"
+    "zod-to-json-schema": "^3.24.4",
+    "typescript": "^5.8.2"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
@@ -51,10 +65,10 @@
     "@typescript-eslint/utils": "^8.26.1",
     "eslint": "^9.19.0",
     "eslint-plugin-import": "^2.31.0",
-    "eslint-plugin-notice": "^1.0.0",
-    "typescript": "^5.8.2"
+    "eslint-plugin-notice": "^1.0.0"
   },
   "bin": {
     "mcp-server-playwright": "cli.js"
-  }
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

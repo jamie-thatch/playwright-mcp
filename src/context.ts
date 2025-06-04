@@ -37,6 +37,7 @@ type PendingAction = {
 export class Context {
   readonly tools: Tool[];
   readonly config: Config;
+  readonly playwrightContext: playwright.BrowserContext | undefined;
   private _browser: playwright.Browser | undefined;
   private _browserContext: playwright.BrowserContext | undefined;
   private _createBrowserContextPromise: Promise<{ browser?: playwright.Browser, browserContext: playwright.BrowserContext }> | undefined;
@@ -46,9 +47,10 @@ export class Context {
   private _pendingAction: PendingAction | undefined;
   private _downloads: { download: playwright.Download, finished: boolean, outputFile: string }[] = [];
 
-  constructor(tools: Tool[], config: Config) {
+  constructor(tools: Tool[], config: Config, playwrightContext?: playwright.BrowserContext) {
     this.tools = tools;
     this.config = config;
+    this.playwrightContext = playwrightContext;
   }
 
   modalStates(): ModalState[] {
@@ -92,6 +94,7 @@ export class Context {
   }
 
   async selectTab(index: number) {
+    await this.ensureTab();
     this._currentTab = this._tabs[index - 1];
     await this._currentTab.page.bringToFront();
   }
@@ -329,6 +332,9 @@ ${code.join('\n')}
   }
 
   private async _innerCreateBrowserContext(): Promise<{ browser?: playwright.Browser, browserContext: playwright.BrowserContext }> {
+    if (this.playwrightContext)
+      return { browser: this.playwrightContext.browser() || undefined, browserContext: this.playwrightContext };
+
     if (this.config.browser?.remoteEndpoint) {
       const url = new URL(this.config.browser?.remoteEndpoint);
       if (this.config.browser.browserName)

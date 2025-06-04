@@ -46,9 +46,9 @@ program
       setupExitWatchdog(connectionList);
 
       if (options.port)
-        startHttpTransport(config, +options.port, options.host, connectionList);
+        startHttpTransport(config, +options.port, options.host, connectionList, undefined);
       else
-        await startStdioTransport(config, connectionList);
+        await startStdioTransport(config, connectionList, undefined);
     });
 
 function setupExitWatchdog(connectionList: Connection[]) {

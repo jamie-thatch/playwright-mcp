@@ -15,9 +15,9 @@
  */
 
 import { Connection, createConnection as createConnectionImpl } from './connection.js';
-
+import { BrowserContext } from 'playwright';
 import type { Config } from '../config.js';
 
-export async function createConnection(config: Config = {}): Promise<Connection> {
-  return createConnectionImpl(config);
+export async function createConnection(config: Config = {}, playwrightContext: BrowserContext): Promise<Connection> {
+  return createConnectionImpl(config, playwrightContext);
 }
